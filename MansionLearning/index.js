@@ -1,4 +1,13 @@
 const puppeteer = require('puppeteer');
+const fs = require('fs');
+
+function sleep(time) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve();
+        }, time);
+    });
+}
 
 const RootAddress = "https://www.athome.co.jp";
 const MainAddress = "https://www.athome.co.jp/chintai/tokyo/nerima-st/list";
@@ -15,38 +24,40 @@ puppeteer.launch().then(async browser => {
             const bukkenName = item.innerText;
             const bukkenWebAddress = item.getElementsByTagName('a')[0].getAttribute('href');
             const array = [bukkenName, bukkenWebAddress];
+            //data[bukkenName] = bukkenWebAddress;
             data.push(array);
         }
         return data;
     });
     console.log(dataBukkenTitles);
     
-    const dataBukkenDetails = [];
+    const dataBukkenDetails = {};
     for(let i = 0; i < dataBukkenTitles.length; ++i) {
         const subPage = await browser.newPage();
         await subPage.goto(RootAddress + dataBukkenTitles[i][1], { waitUntil: "load" });
 
         const dataDetail = await subPage.evaluate(() => {
             const node = document.querySelectorAll("dl.data.typeTable");
-            let data = [];
+            const data = {};
             for(item of node) {
                 const dt = item.getElementsByTagName('dt');
                 const dd = item.getElementsByTagName('dd');
-                const array = [];
                 for(let j = 0; j < dt.length; ++j) {
-                    array.push(dt[j].innerText);
-                    array.push(dd[j].innerText);
+                    data[dt[j].innerText] = dd[j].innerText
                 }
-                data = data.concat(array);
             }
             return data;
         });
-        dataBukkenDetails.push(dataDetail);
+        dataBukkenDetails[dataBukkenTitles[i][0]] = dataDetail;
         console.log(dataDetail);
+
+        await sleep(3000);
 
         subPage.close();
     }
     console.log(dataBukkenDetails);
+
+    fs.writeFileSync('data.txt', JSON.stringify(dataBukkenDetails, null, "\t"));
 
     await browser.close();
 });
