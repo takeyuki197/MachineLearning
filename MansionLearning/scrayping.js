@@ -24,6 +24,14 @@ exports.getScrapedData = function(outputCSVName, options, callback){
     puppeteer.launch().then(async browser => {
         const page = await browser.newPage();
         await page.setJavaScriptEnabled(true);
+        await page.setRequestInterception(true);
+        page.on('request', request => {
+            if (request.resourceType() === 'image')
+            request.abort();
+            else
+            request.continue();
+        });
+
         await page.goto(MainAddress, { waitUntil: 'networkidle0' });
 
         let preBukkenNumStr, postBukkenNumStr;
@@ -104,28 +112,45 @@ exports.getScrapedData = function(outputCSVName, options, callback){
                 if (maxDataSize >= 0 && dataNum > options.maxDataSize) {
                     break;
                 }
-
                 const subPage = await browser.newPage();
+                await subPage.setRequestInterception(true);
+                subPage.on('request', request => {
+                    if (request.resourceType() === 'image')
+                    request.abort();
+                    else
+                    request.continue();
+                });
+
                 await subPage.goto(RootAddress + dataBukkenTitles[i][1], { waitUntil: "domcontentloaded" });
 
                 const dataDetail = await subPage.evaluate(() => {
-                    const node = document.querySelector("section#item-detail_data").querySelectorAll("tr");
+                    const detail_data = document.querySelector("section#item-detail_data");
+                    if (!detail_data) {
+                        return [-1, {}];
+                    }
+                    const node = detail_data.querySelectorAll("tr");
                     const data = {};
                     for(item of node) {
                         const th = item.getElementsByTagName('th');
                         const td = item.getElementsByTagName('td');
                         for(let j = 0; j < th.length; ++j) {
-                            data[th[j].innerText] = td[j].innerText.split('\n').join(' ')
+                            if (th[j].innerText !== ' ') {
+                                data[th[j].innerText] = td[j].innerText.split('\n').join(' ')
+                            }
                         }
                     }
-                    return data;
+                    return [0, data];
                 });
-                dataBukkenDetails[dataBukkenTitles[i][0]] = dataDetail;
-                console.log("Get bukken data: " + dataBukkenTitles[i][0]);
+                if (dataDetail[0] == 0) {
+                    dataBukkenDetails[dataBukkenTitles[i][0]] = dataDetail[1];
+                    console.log("Get bukken data: " + dataBukkenTitles[i][0]);
+                } else {
+                    console.log("Fail to get bukken data: " + dataBukkenTitles[i][0]);
+                }
 
                 if (csv_header.length === 0) {
                     let line = '"タイトル"';
-                    for (let key of Object.keys(dataDetail)) {
+                    for (let key of Object.keys(dataDetail[1])) {
                         csv_header.push(key);
                         line += ',"' + key + '"';
                     }
@@ -135,7 +160,7 @@ exports.getScrapedData = function(outputCSVName, options, callback){
                 let line = '';
                 line += '"' + dataBukkenTitles[i][0] + '"';
                 for (let key of csv_header) {
-                    line += ',"' + dataDetail[key] + '"';
+                    line += ',"' + dataDetail[1][key] + '"';
                 }
                 line += '\n';
                 fs.appendFileSync(outputCSVName, line);

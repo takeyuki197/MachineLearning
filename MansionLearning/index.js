@@ -3,7 +3,7 @@ const scrayping = require('./scrayping');
 const controlDB = require('./controlDB')
 
 const today = new Date;
-const todayString = today.getFullYear() + '-' + today.getMonth() + '-' + today.getDate();
+const todayString = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
 const outputCSVName = 'bunjou_' + todayString + '.csv';
 const options = {
     maxDataSize: -1
