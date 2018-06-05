@@ -9,8 +9,6 @@ function sleep(time) {
     });
 }
 
-const RootAddress = "https://www.athome.co.jp";
-const MainAddress = "https://www.athome.co.jp/mansion/chuko/tokyo/list/";
 
 /**
  * 
@@ -19,6 +17,8 @@ const MainAddress = "https://www.athome.co.jp/mansion/chuko/tokyo/list/";
  * @param {*} callback 
  */
 exports.getScrapedData = function(outputCSVName, options, callback){
+    const RootAddress = "https://www.athome.co.jp";
+    const MainAddress = "https://www.athome.co.jp/mansion/chuko/tokyo/list/";
 
     //puppeteer.launch({devtools: true, slowMo: 250}).then(async browser => {
     puppeteer.launch().then(async browser => {
@@ -181,5 +181,46 @@ exports.getScrapedData = function(outputCSVName, options, callback){
             csv: csv_data
         }
         return callback(ret);
+    });
+}
+
+
+exports.getTransitTime = function (inDestination, callback) {
+    const MainAddress = 'https://transit.yahoo.co.jp/';
+
+    //puppeteer.launch({devtools: true, slowMo: 250}).then(async browser => {
+    puppeteer.launch().then(async browser => {
+        const page = await browser.newPage();
+        await page.setJavaScriptEnabled(true);
+        await page.setRequestInterception(true);
+        page.on('request', request => {
+            if (request.resourceType() === 'image')
+            request.abort();
+            else
+            request.continue();
+        });
+
+        const transit_times = [];
+        for (let i = 0; i < inDestination.length; ++i){
+            await page.goto(MainAddress, { waitUntil: 'networkidle0' });
+            await page.type("#sfrom", "新宿");
+            await page.type("#sto", inDestination[i]);
+            await page.select('select#hh', '09');
+            await page.select('select#mm', '00');
+            page.click('input#searchModuleSubmit');
+            await page.waitForNavigation({ waitUntil: 'networkidle0' });
+            //await page.evaluate(() => {
+            //    $('form[name="search"]').submit();
+            //});
+            await page.waitForSelector('div#route01');
+            const timeStr = await page.evaluate(() => {
+                return $('div#route01 li.time').html()
+            });
+            console.log(timeStr);
+            const lpos = timeStr.lastIndexOf('>');
+            const rpos = timeStr.lastIndexOf('（');
+            transit_times.push(timeStr.slice(lpos+1, rpos).replace(' ', ''));
+        }
+        return callback(null, transit_times);
     });
 }
