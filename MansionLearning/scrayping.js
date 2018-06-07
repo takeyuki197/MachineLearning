@@ -151,8 +151,10 @@ exports.getScrapedData = function(outputCSVName, options, callback){
                 if (csv_header.length === 0) {
                     let line = '"タイトル"';
                     for (let key of Object.keys(dataDetail[1])) {
-                        csv_header.push(key);
-                        line += ',"' + key + '"';
+                        if (key != ' '){
+                            csv_header.push(key);
+                            line += ',"' + key + '"';
+                        }
                     }
                     line += '\n';
                     fs.appendFileSync(outputCSVName, line);
@@ -185,42 +187,54 @@ exports.getScrapedData = function(outputCSVName, options, callback){
 }
 
 
-exports.getTransitTime = function (inDestination, callback) {
+exports.getTransitTime = function (inTransitData, inDestination, callback) {
     const MainAddress = 'https://transit.yahoo.co.jp/';
+    let output_data = Object.assign({}, inTransitData);
 
     //puppeteer.launch({devtools: true, slowMo: 250}).then(async browser => {
     puppeteer.launch().then(async browser => {
-        const page = await browser.newPage();
-        await page.setJavaScriptEnabled(true);
-        await page.setRequestInterception(true);
-        page.on('request', request => {
-            if (request.resourceType() === 'image')
-            request.abort();
-            else
-            request.continue();
-        });
-
+        
         const transit_times = [];
         for (let i = 0; i < inDestination.length; ++i){
-            await page.goto(MainAddress, { waitUntil: 'networkidle0' });
-            await page.type("#sfrom", "新宿");
-            await page.type("#sto", inDestination[i]);
-            await page.select('select#hh', '09');
-            await page.select('select#mm', '00');
-            page.click('input#searchModuleSubmit');
-            await page.waitForNavigation({ waitUntil: 'networkidle0' });
-            //await page.evaluate(() => {
-            //    $('form[name="search"]').submit();
-            //});
-            await page.waitForSelector('div#route01');
-            const timeStr = await page.evaluate(() => {
-                return $('div#route01 li.time').html()
-            });
-            console.log(timeStr);
-            const lpos = timeStr.lastIndexOf('>');
-            const rpos = timeStr.lastIndexOf('（');
-            transit_times.push(timeStr.slice(lpos+1, rpos).replace(' ', ''));
+            if (output_data[inDestination[i]]) {
+                continue;
+            } else {
+                try {
+                    const page = await browser.newPage();
+                    await page.setJavaScriptEnabled(true);
+                    await page.setRequestInterception(true);
+                    page.on('request', request => {
+                        if (request.resourceType() === 'image')
+                        request.abort();
+                        else
+                        request.continue();
+                    });
+
+                    await page.goto(MainAddress, { waitUntil: 'networkidle0' });
+                    await page.type("#sfrom", "新宿");
+                    await page.type("#sto", inDestination[i]);
+                    await page.select('select#hh', '09');
+                    await page.select('select#mm', '00');
+                    page.click('input#searchModuleSubmit');
+                    await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                    //await page.evaluate(() => {
+                    //    $('form[name="search"]').submit();
+                    //});
+                    await page.waitForSelector('div#route01');
+                    const timeStr = await page.evaluate(() => {
+                        return $('div#route01 li.time').html()
+                    });
+                    console.log(inDestination[i] + ': ' + timeStr);
+                    const lpos = timeStr.lastIndexOf('>');
+                    const rpos = timeStr.lastIndexOf('（');
+                    transit_times.push(timeStr.slice(lpos+1, rpos).replace(' ', ''));
+                    output_data[inDestination[i]] = timeStr.slice(lpos+1, rpos).replace(' ', '');
+                    await page.close()
+                } catch(err) {
+                    return callback(err, transit_times, output_data);
+                }
+            }
         }
-        return callback(null, transit_times);
+        return callback(null, transit_times, output_data);
     });
 }
