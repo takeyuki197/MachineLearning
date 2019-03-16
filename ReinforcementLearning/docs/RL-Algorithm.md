@@ -19,7 +19,7 @@
         + 報酬をクリップすることで勾配が安定する
 
 ### Advantage-QLearning
-+ TD法とQ学習のを組み合わせたもの
++ TD法とQ学習を組み合わせたもの
 + 数ステップ先までの報酬や行動から現在の状態を評価する手法
 + 数式
 
@@ -38,6 +38,9 @@
 + 数式
 
 ## Actor-Critic
+### Policy Based の欠点
++ 学習が不安定
+
 ### Actor-Critic とは
 + Policy Based な手法（Actor）と Value Based な手法（Critic）を組み合わせた手法
 
