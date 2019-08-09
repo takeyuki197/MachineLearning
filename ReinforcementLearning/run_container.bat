@@ -1,3 +1,3 @@
-docker stop tf_trfl
-docker rm tf_trfl
-docker run -p 8888:8888 -v ~/:/src --name tf_trfl tf
+docker stop rl_cpu
+docker rm rl_cpu
+docker run -p 8888:8888 -v ~/:/src --restart=always --name rl_cpu rl
