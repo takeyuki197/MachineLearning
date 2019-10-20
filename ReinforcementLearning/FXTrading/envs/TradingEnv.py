@@ -14,13 +14,14 @@ class FxEnv(gym.Env):
     
     def calc_observation(self):
         action_vec = np.eye(3)[self.last_action].tolist()
+        current_point = self.df['USD'][self.idx]
         velocity = self.df['USD'][self.idx] - self.df['USD'][self.idx-1]
         accelaration = self.df['USD'][self.idx] - 2*self.df['USD'][self.idx-1] + self.df['USD'][self.idx-2]
         downfall = self.df['USD'][self.idx-4:self.idx].max() - self.df['USD'][self.idx]
         upfall = self.df['USD'][self.idx] - self.df['USD'][self.idx-4:self.idx].min()
         rest_time = (self.start_idx + self.scenario_length - self.idx)/self.scenario_length
         
-        return action_vec + [velocity, accelaration, downfall, upfall, rest_time]
+        return action_vec + [current_point, velocity, accelaration, downfall, upfall, rest_time]
      
     def reset(self):
         self.start_idx = np.random.choice(range(0, len(self.df)-self.scenario_length))
@@ -44,11 +45,11 @@ class FxEnv(gym.Env):
             transaction_cost = self.df['USD'][self.idx] * self.transaction_cost_ratio
         
         if action == 0:
-            reward = 0
+            reward = -transaction_cost
         else:
             reward = (self.df['USD'][self.idx+1] - self.df['USD'][self.idx])*position_sign - transaction_cost
             
-        info = self.df['USD'][self.idx]
+        info = self.df['USD'][self.idx+1]
         
         self.idx += 1
         self.last_action = action
