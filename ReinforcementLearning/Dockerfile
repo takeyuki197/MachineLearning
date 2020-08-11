@@ -23,4 +23,10 @@ RUN pip install ray[rllib]
 
 RUN pip install optuna
 
-CMD [ "jupyter", "notebook", "--ip", "0.0.0.0", "--allow-root", "--NotebookApp.token='rein'" ]
+RUN pip install jupyterlab
+RUN jupyter serverextension enable --py jupyterlab
+
+RUN pip install QuantLib-Python
+RUN pip install seaborn
+
+CMD [ "jupyter", "lab", "--ip", "0.0.0.0", "--allow-root", "--NotebookApp.token='rein'" ]
