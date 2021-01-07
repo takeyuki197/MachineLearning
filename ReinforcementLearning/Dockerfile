@@ -10,6 +10,7 @@ RUN apt-get update && \
     libxrender1 \
     libxext6 
 
+RUN pip install --upgrade pip
 RUN pip install tensorflow_probability==0.6.0
 RUN pip install gym
 RUN pip install trfl
