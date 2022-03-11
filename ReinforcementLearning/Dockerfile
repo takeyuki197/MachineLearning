@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:1.13.1-py3-jupyter
+FROM tensorflow/tensorflow:2.7.1-jupyter
 
 RUN mkdir /src
 WORKDIR /src
@@ -8,15 +8,16 @@ RUN apt-get update && \
     libglib2.0-0 \
     libsm6 \
     libxrender1 \
-    libxext6 
+    libxext6
 
 RUN pip install --upgrade pip
 RUN pip install tensorflow_probability==0.6.0
 RUN pip install gym
 RUN pip install trfl
 
-RUN pip install https://download.pytorch.org/whl/cpu/torch-1.1.0-cp35-cp35m-linux_x86_64.whl
-RUN pip install https://download.pytorch.org/whl/cpu/torchvision-0.3.0-cp35-cp35m-linux_x86_64.whl
+#RUN pip install https://download.pytorch.org/whl/cpu/torch-1.1.0-cp35-cp35m-linux_x86_64.whl
+#RUN pip install https://download.pytorch.org/whl/cpu/torchvision-0.3.0-cp35-cp35m-linux_x86_64.whl
+RUN pip3 install torch==1.11.0+cpu torchvision==0.12.0+cpu torchaudio==0.11.0+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html
 
 RUN pip install sklearn
 
